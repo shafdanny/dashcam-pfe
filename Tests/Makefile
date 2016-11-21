@@ -63,6 +63,7 @@ clean:
 	rm -rf obj obj-debug obj-qpu obj-debug-qpu
 	rm -f Tri GCD Print MultiTri AutoTest OET Hello ReqRecv Rot3D ID *.o
 	rm -f HeatMap
+	rm -f Encrypt
 
 LIB = $(patsubst %,$(OBJ_DIR)/%,$(OBJ))
 
@@ -107,6 +108,10 @@ Rot3D: Rot3D.o $(LIB)
 	@$(CXX) $^ -o $@ $(CXX_FLAGS)
 
 HeatMap: HeatMap.o $(LIB)
+	@echo Linking...
+	@$(CXX) $^ -o $@ $(CXX_FLAGS)
+
+Encrypt: Encrypt.o $(LIB)
 	@echo Linking...
 	@$(CXX) $^ -o $@ $(CXX_FLAGS)
 

@@ -1,4 +1,5 @@
 #include "QPULib.h"
+#include <time.h>
 
 void tri(Ptr<Int> p)
 {
@@ -16,6 +17,7 @@ void tri(Ptr<Int> p)
 
 int main()
 {
+  clock_t begin = clock();
   // Construct kernel
   auto k = compile(tri);
 
@@ -29,6 +31,11 @@ int main()
 
   // Invoke the kernel and display the result
   k(&array);
+  clock_t end = clock();
+  double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+
+  printf("Time %f s \n\n", time_spent);
+  
   for (int i = 0; i < 64; i++)
     printf("%i: %i\n", i, array[i]);
   
