@@ -1,9 +1,11 @@
 #include "QPULib.h"
 #include <time.h>
 
+#define NUM_QPU 4
+
 void tri(Ptr<Int> p)
 {
-  p = p + (me() << 4);
+  p = p + (me() << NUM_QPU);
   Int n = *p;
   Int sum = 0;
   While (any(n > 0))
@@ -22,7 +24,7 @@ int main()
   auto k = compile(tri);
 
   // Use 4 QPUs
-  k.setNumQPUs(4);
+  k.setNumQPUs(NUM_QPU);
 
   // Allocate and initialise array shared between ARM and GPU
   SharedArray<int> array(64);

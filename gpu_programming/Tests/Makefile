@@ -64,6 +64,7 @@ clean:
 	rm -f Tri GCD Print MultiTri AutoTest OET Hello ReqRecv Rot3D ID *.o
 	rm -f HeatMap
 	rm -f Encrypt
+	rm -f Encrypt2
 
 LIB = $(patsubst %,$(OBJ_DIR)/%,$(OBJ))
 
@@ -112,6 +113,10 @@ HeatMap: HeatMap.o $(LIB)
 	@$(CXX) $^ -o $@ $(CXX_FLAGS)
 
 Encrypt: Encrypt.o $(LIB)
+	@echo Linking...
+	@$(CXX) $^ -o $@ $(CXX_FLAGS)
+
+Encrypt2: Encrypt_optimized.o $(LIB)
 	@echo Linking...
 	@$(CXX) $^ -o $@ $(CXX_FLAGS)
 

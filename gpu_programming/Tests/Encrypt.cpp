@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include "QPULib.h"
 #include <time.h>
+#include <sys/time.h>
+
+int count = 0;
 
 /** Simple structure to store a buffer of binary data **/
 typedef struct  {
@@ -12,14 +15,19 @@ typedef struct  {
  * Function that executes in parallel using QPUs
  * There is a limit of 16 element in a vector
  */
-void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r)
+void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int n)
 {
-  Int a = *p;
-  Int b = *q;
+	Int inc = numQPUs() << 4;
+	Int index;
+  For(Int i = 0, i<n, i=i+inc)
+	  index = (me() << 4) + i;
+    Int a = p[index];
+    Int b = q[index];
 
-  a = a^b;
+    a = a^b;
 
-  *r = a;
+    r[index] = a;
+  End
 }
 
 unsigned char* generate_random_key(int length)
@@ -44,11 +52,11 @@ int main()
   unsigned char *generated_key;
 
   FILE *fp;
-  long filelen;
+  int filelen;
 
   Data data;
 
-  fp = fopen("test_image_small.jpg","rb");  // r for read, b for binary
+  fp = fopen("big.jpg","rb");  // r for read, b for binary
   fseek(fp, 0, SEEK_END);
   filelen = ftell(fp);
   rewind(fp);
@@ -72,7 +80,7 @@ int main()
   auto k = compile(xorFunction);
 
   // Set the number of QPUs to use
-  k.setNumQPUs(4);
+  k.setNumQPUs(6);
 
   // Allocate and initialise arrays shared between ARM and GPU
   SharedArray<int> message(filelen), key(filelen), encrypted(filelen);
@@ -82,21 +90,24 @@ int main()
     message[i] = data.buffer[i];
     key[i] = generated_key[i];
   }
-
-  clock_t t1=clock();
+	struct timeval stop, start,diff;
+	gettimeofday(&start, NULL);
   // Invoke the kernel and display the result
-  k(&message, &key, &encrypted);
-  clock_t t2=clock();
+  k(&message, &key, &encrypted, filelen);
+	gettimeofday(&stop, NULL);
+	timersub(&stop, &start, &diff);
+	printf("%ld.%06lds\n", diff.tv_sec, diff.tv_usec);
   
-  double time = (double)(t2 - t1) / CLOCKS_PER_SEC;
-  printf("The time taken is.. %f \n\n", time);
 
   printf("Message to be encrypted:\n");
-  for(int i=0;i<20;i++) printf("%x ", message[i]);
+  for(int i=0;i<30;i++) printf("%x ", message[i]);
+
+  printf("\n\nGenerated key \n");
+  for(int i=0;i<30;i++) printf("%x ", key[i]);
 
   printf("\n====== ENCRYPTION ====== \n");
   printf("Message after encryption:\n");
-  for(int i=0;i<20;i++) printf("%x ", encrypted[i]);
+  for(int i=0;i<30;i++) printf("%x ", encrypted[i]);
   
   unsigned char *outputBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
   for(int i=0;i<filelen;i++) outputBuffer[i] = encrypted[i];
@@ -107,13 +118,17 @@ int main()
   printf("\n\n");
 
   printf("\n====== DECRYPTION ====== \n");
-  k(&encrypted, &key, &message);
+  gettimeofday(&start, NULL);
+  k(&encrypted, &key, &message, filelen);
+  gettimeofday(&stop, NULL);
+	timersub(&stop, &start, &diff);
+	printf("%ld.%06lds\n", diff.tv_sec, diff.tv_usec);
   printf("Message after decryption:\n");
-  for(int i=0;i<20;i++) printf("%x ", message[i]);
+  for(int i=0;i<30;i++) printf("%x ", message[i]);
 
   unsigned char *decryptedBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
   for(int i=0;i<filelen;i++) decryptedBuffer[i] = message[i];
-  
+
   fp = fopen("image_decrypted.jpg", "wb");
   fwrite(decryptedBuffer, sizeof(decryptedBuffer[0]), data.length/sizeof(decryptedBuffer[0]), fp);
   fclose(fp);

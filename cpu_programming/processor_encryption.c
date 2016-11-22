@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 
 //si n est un mutliple de 4, permet d'obtenir le bon nombre d entier a partir de char
 #define LEN(n) ((n%4 == 0)? n/4 : n/4+1)
@@ -67,7 +68,7 @@ int main()
 	clock_t t1, t2;
 	
 	test();
-	
+	struct timeval start, end, diff;
 	unsigned char* cypher = (char*)malloc(len*sizeof(char));
 	unsigned char* uncypher = (char*)malloc(len*sizeof(char)+1);
 	if(cypher == NULL || uncypher == NULL){
@@ -78,10 +79,14 @@ int main()
 	unsigned char* key = generate_random_key(len);
 	printf("chiffrement length: %d octets\n",len);//end of file at the end
 	t1 = clock();
+	gettimeofday(&start, NULL);
 	//réalise le xor entre la clé et le buffer
 	for(i=0; i<len; ++i){
         cypher[i] = (char)(file.buf[i] ^ key[i]);
 	}
+	gettimeofday(&end, NULL);
+	timersub(&end,&start,&diff);
+	printf(" # %ld.%06lds\n",diff.tv_sec,diff.tv_usec);
 	t2 = clock();
 	elapsedtime(t1,t2);
 	printf("dechiffrement\n");
