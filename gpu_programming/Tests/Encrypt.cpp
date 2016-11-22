@@ -111,5 +111,13 @@ int main()
   printf("Message after decryption:\n");
   for(int i=0;i<20;i++) printf("%x ", message[i]);
 
+  unsigned char *decryptedBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
+  for(int i=0;i<filelen;i++) decryptedBuffer[i] = message[i];
+  
+  fp = fopen("image_decrypted.jpg", "wb");
+  fwrite(decryptedBuffer, sizeof(decryptedBuffer[0]), data.length/sizeof(decryptedBuffer[0]), fp);
+  fclose(fp);
+  printf("\n\n");
+
   return 0;
 }
