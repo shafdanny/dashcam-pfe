@@ -8,7 +8,7 @@ typedef struct  {
   unsigned char *buffer;
 } Data;
 
-/** 
+/**
  * Function that executes in parallel using QPUs
  * There is a limit of 16 element in a vector
  */
@@ -16,9 +16,9 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r)
 {
   Int a = *p;
   Int b = *q;
-  
+
   a = a^b;
-  
+
   *r = a;
 }
 
@@ -72,7 +72,7 @@ int main()
   auto k = compile(xorFunction);
 
   // Set the number of QPUs to use
-  k.setNumQPUs(1);
+  k.setNumQPUs(4);
 
   // Allocate and initialise arrays shared between ARM and GPU
   SharedArray<int> message(filelen), key(filelen), encrypted(filelen);

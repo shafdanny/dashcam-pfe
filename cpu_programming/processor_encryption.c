@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys\timeb.h> 
 #include <string.h>
 #include <time.h>
 
+//si n est un mutliple de 4, permet d'obtenir le bon nombre d entier a partir de char
+#define LEN(n) ((n%4 == 0)? n/4 : n/4+1)
 
 //gcc processor_encryption.c -o test
 
@@ -14,7 +15,7 @@ typedef struct{
 
 
 void test();
-void elapsedtime(struct timeb start,struct timeb end);
+void elapsedtime(clock_t start,clock_t end);
 //read a file and return a Data containing a byte[] and its length
 Data read(char* path)
 {
@@ -60,11 +61,10 @@ unsigned char* generate_random_key(int length)
 int main()
 {
 	srand ((unsigned int) time (NULL));
-	printf("%d\n",rand()%3);
 	Data file = read("test.jpg");
 	int len = file.length;
 	int i;
-	struct timeb start, end;
+	clock_t t1, t2;
 	
 	test();
 	
@@ -77,23 +77,23 @@ int main()
 	//genere la clé, un random de la meme taille que notre buffer
 	unsigned char* key = generate_random_key(len);
 	printf("chiffrement length: %d octets\n",len);//end of file at the end
-	ftime(&start);
+	t1 = clock();
 	//réalise le xor entre la clé et le buffer
 	for(i=0; i<len; ++i){
         cypher[i] = (char)(file.buf[i] ^ key[i]);
 	}
-	ftime(&end);
-	elapsedtime(start,end);
+	t2 = clock();
+	elapsedtime(t1,t2);
 	printf("dechiffrement\n");
-	ftime(&start);
+	t1 = clock();
 	//réalise le déchiffrement
 	for(i=0; i<len; ++i){
         uncypher[i] = (char)(cypher[i] ^ key[i]);
 	}
-	ftime(&end);
+	t2 = clock();
 	if(strcmp(file.buf,uncypher) == 0)
 		printf("youpi\n");
-	elapsedtime(start,end);
+	elapsedtime(t1,t2);
 	
 	FILE * fichier;
 	fichier = fopen("result.jpg" , "wb");
@@ -101,20 +101,52 @@ int main()
 
 }
 
-void elapsedtime(struct timeb start,struct timeb end)
+void elapsedtime(clock_t t1,clock_t t2)
 {
-	int time_spend = (int) (1000.0 * (end.time - start.time)+ (end.millitm - start.millitm));
-	printf("time elapsed: %d ms\n",time_spend);
+	double time = (double)(t2 - t1) / CLOCKS_PER_SEC;
+	//int time_spend = (int) (1000.0 * (end.time - start.time)+ (end.millitm - start.millitm));
+	printf("time elapsed: %f s\n",time);
 }
 
 void test()
 {
 	printf("--------------------------test--------------------------\n");
 	int i;
-	char test[10]="coucou";
+	char test[10]="coucou pd";
 	unsigned char* key_test = generate_random_key(10);//"coupon"
 	unsigned char result_test[10];
 	char reconstruct_test[10];
+	
+	int* tab;
+	int cmp;
+	int len = LEN(10);
+	int quarter = 10/4;
+	int remaining;
+	tab = (int*)malloc(len*sizeof(int));
+	for(i=0,cmp=0;i<quarter;i++,cmp+=4){
+		tab[i] = 0;
+		tab[i] |= (test[cmp] << 24);
+		tab[i] |= (test[cmp+1] << 16);
+		tab[i] |= (test[cmp+2] << 8);
+		tab[i] |= (test[cmp+3]);
+		printf("iteration value: %08X\n",tab[i]);
+	}
+	remaining=10%4;
+	tab[quarter] = 0;
+	for(i=0;i<remaining;i++){
+		tab[quarter]|= (test[cmp+i] << (3-i)*8);
+	}
+	printf("original char array: ");
+	for(i=0; i<10; ++i){
+		printf(" %02X",test[i]);
+	}
+	printf("\n");
+	printf("int array: ");
+	for(i=0; i<len; ++i){
+		printf(" %08X",tab[i]);
+	}
+	printf("\n\n");
+	
 	
 	printf("mot: ");
 	for(i=0; i<10; ++i){
