@@ -9,6 +9,7 @@
 #define NUM_LANES 16
 #define MAX_QPUS 12
 #define EMULATOR_HEAP_SIZE 65536
+//65536
 
 // This is a type for representing the values in a vector
 union Word {
