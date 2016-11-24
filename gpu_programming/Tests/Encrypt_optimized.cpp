@@ -44,18 +44,20 @@ void xorFunction2(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int n)
   Ptr<Int> a = p + index() + (me() << 4);
   Ptr<Int> b = q + index() + (me() << 4);
   Ptr<Int> c = r + index() + (me() << 4);
-  gather(a);gather(b);gather(c);
+  gather(a);gather(b);
   
   Int pOld, qOld, rOld;
 
-  For(Int i = 0, i<n, i=i+inc)
-    gather(a+inc); gather(b+inc); gather(c+inc);
-    receive(pOld); receive(qOld); receive(rOld);
+  For(Int i = 0, i<n-1, i=i+inc)
+    gather(a+inc); gather(b+inc);
+    receive(pOld); receive(qOld);
     
     store(pOld^qOld, c);
     
     a = a+inc; b=b+inc; c=c+inc;
   End
+  receive(pOld); receive(qOld);
+  store(pOld^qOld, c);
 }
 //take a array of char and store it in to an array of integer using all space, n is the size of the char array
 int* convert_to_integer(unsigned char* buff,int n)
@@ -175,6 +177,8 @@ int main()
   printf("GPU V1: %ld.%06lds\n", diff.tv_sec, diff.tv_usec);
   
   printf("Message to be encrypted:\n");
+  for(int i=0;i<5;i++) printf("%x ", integer_msg[i]);
+  printf("\n");
   for(int i=0;i<5;i++) printf("%x ", message[i]);
 
   printf("\n\nGenerated key \n");
@@ -187,12 +191,13 @@ int main()
   
   //unsigned char *outputBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
   //for(int i=0;i<filelen;i++) outputBuffer[i] = encrypted[i];
-  
+  /*
   int* tmp = (int*)malloc(size*sizeof(int));
   for(int i=0;i<size;i++){
 	  tmp[i]=encrypted[i];
   }
   unsigned char *outputBuffer = convert_to_char(tmp,filelen);
+  */
   /*
   fp = fopen("image_encrypted.jpg", "wb");
   fwrite(outputBuffer, sizeof(outputBuffer[0]), data.length/sizeof(outputBuffer[0]), fp);
@@ -200,27 +205,34 @@ int main()
   printf("\n\n");
   */
   printf("\n====== DECRYPTION ====== \n");
+  for(int i=0;i<5;i++) printf("%x ", message[i]);
   gettimeofday(&start, NULL);
   k(&encrypted, &key, &message, size);
   gettimeofday(&stop, NULL);
 	timersub(&stop, &start, &diff);
-	printf("%ld.%06lds\n", diff.tv_sec, diff.tv_usec);
+	printf("\n%ld.%06lds\n", diff.tv_sec, diff.tv_usec);
   printf("Message after decryption:\n");
   for(int i=0;i<5;i++) printf("%x ", message[i]);
-
+  printf("\nencrypted\n");
+  for(int i=0;i<5;i++) printf("%x ", encrypted[i]);
+  printf("\nkey\n");
+  for(int i=0;i<5;i++) printf("%x ", key[i]);
   
   //unsigned char *decryptedBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
   //for(int i=0;i<filelen;i++) decryptedBuffer[i] = message[i];
   
-  tmp = (int*)malloc(size*sizeof(int));
+  int* tmp = (int*)malloc(size*sizeof(int));
   for(int i=0;i<size;i++){
 	  tmp[i]=message[i];
   }
+  printf("before copying to file\n");
+  for(int i=0;i<5;i++) printf("%x ", tmp[i]);
   unsigned char *decryptedBuffer = convert_to_char(tmp,filelen);
-
-  fp = fopen("image_decrypted.jpg", "wb");
+  
+  fp = fopen("image_decrypted_test.jpg", "wb");
   fwrite(decryptedBuffer, sizeof(decryptedBuffer[0]), data.length/sizeof(decryptedBuffer[0]), fp);
   fclose(fp);
+
   printf("\n\n");
   return 0;
 }

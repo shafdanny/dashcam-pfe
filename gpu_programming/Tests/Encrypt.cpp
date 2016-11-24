@@ -2,8 +2,9 @@
 #include "QPULib.h"
 #include <time.h>
 #include <sys/time.h>
+#include <unistd.h>
 
-#define NUM_QPU 8
+#define NUM_QPU 1
 
 int count = 0;
 
@@ -51,11 +52,13 @@ void xorFunction2(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int n)
   For(Int i = 0, i<n, i=i+inc)
     gather(a+inc); gather(b+inc); gather(c+inc);
     receive(pOld); receive(qOld); receive(rOld);
-    
-    store(pOld^qOld, c);
+    rOld = pOld^qOld;
+    store(rOld, c);
     
     a = a+inc; b=b+inc; c=c+inc;
   End
+
+  receive(pOld); receive(qOld); receive(rOld);
 }
 
 unsigned char* generate_random_key(int length)
@@ -144,6 +147,8 @@ int main()
   printf("\n====== ENCRYPTION ====== \n");
   printf("Message after encryption:\n");
   for(int i=0;i<30;i++) printf("%x ", encrypted[i]);
+  printf("\n\nGenerated key \n");
+  for(int i=0;i<30;i++) printf("%x ", key[i]);
   
   unsigned char *outputBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
   for(int i=0;i<filelen;i++) outputBuffer[i] = encrypted[i];
@@ -155,20 +160,21 @@ int main()
 
   printf("\n====== DECRYPTION ====== \n");
   gettimeofday(&start, NULL);
-  k(&encrypted, &key, &message, filelen);
+  k2(&encrypted, &key, &message, filelen);
   gettimeofday(&stop, NULL);
-	timersub(&stop, &start, &diff);
-	printf("%ld.%06lds\n", diff.tv_sec, diff.tv_usec);
-  printf("Message after decryption:\n");
+  timersub(&stop, &start, &diff);
+  printf("GPU V2: %ld.%06lds\n", diff.tv_sec, diff.tv_usec);
+  
+  printf("Message decrypted:\n");
   for(int i=0;i<30;i++) printf("%x ", message[i]);
 
-  unsigned char *decryptedBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
-  for(int i=0;i<filelen;i++) decryptedBuffer[i] = message[i];
-
+  outputBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
+  for(int i=0;i<filelen;i++) outputBuffer[i] = message[i];
+  
   fp = fopen("image_decrypted.jpg", "wb");
-  fwrite(decryptedBuffer, sizeof(decryptedBuffer[0]), data.length/sizeof(decryptedBuffer[0]), fp);
+  fwrite(outputBuffer, sizeof(outputBuffer[0]), data.length/sizeof(outputBuffer[0]), fp);
   fclose(fp);
   printf("\n\n");
 
-  return 0;
 }
+  
