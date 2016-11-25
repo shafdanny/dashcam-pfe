@@ -100,7 +100,7 @@ int main()
   auto k = compile(rot3D_3);
 
   // Use 12 QPUs
-  k.setNumQPUs(12);
+  k.setNumQPUs(6);
 
   // Allocate and initialise arrays shared between ARM and GPU
   SharedArray<float> x(N), y(N);
