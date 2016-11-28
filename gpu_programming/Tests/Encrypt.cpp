@@ -2,6 +2,9 @@
 #include "QPULib.h"
 #include <time.h>
 #include <sys/time.h>
+#include <unistd.h>
+
+#define NUM_QPU 1
 
 int count = 0;
 
@@ -14,6 +17,7 @@ typedef struct  {
 /**
  * Function that executes in parallel using QPUs
  * There is a limit of 16 element in a vector
+ * Version 1: Multiple GPU without gather, receive and store
  */
 void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int n)
 {
@@ -28,6 +32,33 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int n)
 
     r[index] = a;
   End
+}
+
+/**
+ * Function that executes in parallel using QPUs
+ * Version 2: Multiple GPU with gather, receive and store
+ */
+void xorFunction2(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int n)
+{
+  Int inc = numQPUs() << 4;
+
+  Ptr<Int> a = p + index() + (me() << 4);
+  Ptr<Int> b = q + index() + (me() << 4);
+  Ptr<Int> c = r + index() + (me() << 4);
+  gather(a);gather(b);gather(c);
+  
+  Int pOld, qOld, rOld;
+
+  For(Int i = 0, i<n, i=i+inc)
+    gather(a+inc); gather(b+inc); gather(c+inc);
+    receive(pOld); receive(qOld); receive(rOld);
+    rOld = pOld^qOld;
+    store(rOld, c);
+    
+    a = a+inc; b=b+inc; c=c+inc;
+  End
+
+  receive(pOld); receive(qOld); receive(rOld);
 }
 
 unsigned char* generate_random_key(int length)
@@ -56,7 +87,7 @@ int main()
 
   Data data;
 
-  fp = fopen("big.jpg","rb");  // r for read, b for binary
+  fp = fopen("bigger.jpg","rb");  // r for read, b for binary
   fseek(fp, 0, SEEK_END);
   filelen = ftell(fp);
   rewind(fp);
@@ -78,27 +109,35 @@ int main()
   printf("\n\n");
   // Construct kernel
   auto k = compile(xorFunction);
+  auto k2 = compile(xorFunction2);
 
   // Set the number of QPUs to use
-  k.setNumQPUs(6);
+  k.setNumQPUs(NUM_QPU);
+  k2.setNumQPUs(NUM_QPU);
 
   // Allocate and initialise arrays shared between ARM and GPU
   SharedArray<int> message(filelen), key(filelen), encrypted(filelen);
   srand(0);
-
+  printf("Filelen %d \n", filelen);
   for(int i=0;i<filelen;i++) {
     message[i] = data.buffer[i];
     key[i] = generated_key[i];
   }
-	struct timeval stop, start,diff;
-	gettimeofday(&start, NULL);
+  
+  struct timeval stop, start,diff;
+  gettimeofday(&start, NULL);
   // Invoke the kernel and display the result
   k(&message, &key, &encrypted, filelen);
-	gettimeofday(&stop, NULL);
-	timersub(&stop, &start, &diff);
-	printf("%ld.%06lds\n", diff.tv_sec, diff.tv_usec);
+  gettimeofday(&stop, NULL);
+  timersub(&stop, &start, &diff);
+  printf("GPU V1: %ld.%06lds\n", diff.tv_sec, diff.tv_usec);
   
-
+  gettimeofday(&start, NULL);
+  k2(&message, &key, &encrypted, filelen);
+  gettimeofday(&stop, NULL);
+  timersub(&stop, &start, &diff);
+  printf("GPU V2: %ld.%06lds\n", diff.tv_sec, diff.tv_usec);
+  
   printf("Message to be encrypted:\n");
   for(int i=0;i<30;i++) printf("%x ", message[i]);
 
@@ -108,6 +147,8 @@ int main()
   printf("\n====== ENCRYPTION ====== \n");
   printf("Message after encryption:\n");
   for(int i=0;i<30;i++) printf("%x ", encrypted[i]);
+  printf("\n\nGenerated key \n");
+  for(int i=0;i<30;i++) printf("%x ", key[i]);
   
   unsigned char *outputBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
   for(int i=0;i<filelen;i++) outputBuffer[i] = encrypted[i];
@@ -119,20 +160,21 @@ int main()
 
   printf("\n====== DECRYPTION ====== \n");
   gettimeofday(&start, NULL);
-  k(&encrypted, &key, &message, filelen);
+  k2(&encrypted, &key, &message, filelen);
   gettimeofday(&stop, NULL);
-	timersub(&stop, &start, &diff);
-	printf("%ld.%06lds\n", diff.tv_sec, diff.tv_usec);
-  printf("Message after decryption:\n");
+  timersub(&stop, &start, &diff);
+  printf("GPU V2: %ld.%06lds\n", diff.tv_sec, diff.tv_usec);
+  
+  printf("Message decrypted:\n");
   for(int i=0;i<30;i++) printf("%x ", message[i]);
 
-  unsigned char *decryptedBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
-  for(int i=0;i<filelen;i++) decryptedBuffer[i] = message[i];
-
+  outputBuffer = (unsigned char *)malloc((filelen+1)*sizeof(unsigned char));
+  for(int i=0;i<filelen;i++) outputBuffer[i] = message[i];
+  
   fp = fopen("image_decrypted.jpg", "wb");
-  fwrite(decryptedBuffer, sizeof(decryptedBuffer[0]), data.length/sizeof(decryptedBuffer[0]), fp);
+  fwrite(outputBuffer, sizeof(outputBuffer[0]), data.length/sizeof(outputBuffer[0]), fp);
   fclose(fp);
   printf("\n\n");
 
-  return 0;
 }
+  
