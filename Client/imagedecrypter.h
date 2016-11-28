@@ -2,6 +2,7 @@
 #define IMAGEDECRYPTER_H
 
 #include <QObject>
+#include <QFile>
 
 class ImageDecrypter : public QObject
 {

@@ -2,8 +2,8 @@
 #define IMAGEDOWNLOADER_H
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-
 #include <QObject>
+#include <QDebug>
 
 class ImageDownloader : public QObject
 {

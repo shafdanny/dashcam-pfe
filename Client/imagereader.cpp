@@ -10,17 +10,17 @@ void ImageReader::imageDownloaded()
     qDebug() << "image downloaded";
 
     QByteArray bytesArray = imageDownloader.getImageData();
-    qDebug() << "bytes : " << bytesArray.size();
+    qDebug() << "bytes downloaded: " << bytesArray.size();
 
-    qDebug() << "decrypting data";
+    qDebug() << "decrypting data ... ";
     ImageDecrypter imageDecrypter(bytesArray);
-  //  connect(&imageDecrypter, SIGNAL(decrypted()), this, SLOT(imageDecrypted()));
     QByteArray decryptedData = imageDecrypter.getDecryptedData();
 
-    qDebug() << "writing decrypted image to file";
+    qDebug() << "writing decrypted image to file ... ";
     QFile imageFile("image.jpg");
     imageFile.open(QIODevice::WriteOnly);
     imageFile.write(decryptedData);
     imageFile.close();
+    qDebug() << "Done";
 
 }
