@@ -6,8 +6,10 @@
 class ImageDecrypter : public QObject
 {
     Q_OBJECT
+    QByteArray decryptedData;
 public:
-    explicit ImageDecrypter(QObject *parent = 0);
+    explicit ImageDecrypter(QByteArray cryptedData, QObject *parent = 0);
+    QByteArray getDecryptedData();
 
 signals:
 
