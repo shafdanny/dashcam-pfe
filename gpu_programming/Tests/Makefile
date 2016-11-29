@@ -119,6 +119,10 @@ Encrypt: Encrypt.o $(LIB)
 Encrypt2: Encrypt_optimized.o $(LIB)
 	@echo Linking...
 	@$(CXX) $^ -o $@ $(CXX_FLAGS)
+	
+TestIf: Test.o $(LIB)
+	@echo Linking...
+	@$(CXX) $^ -o $@ $(CXX_FLAGS)
 
 # Intermediate targets
 

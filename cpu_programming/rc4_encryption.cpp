@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <iomanip> 
 
 class State
 {
@@ -65,6 +66,7 @@ void gethexdigit(char in, unsigned char & out)
 		std::cout << "Hex key contains letter outside range 0-9 or a-z: " << in << std::endl; 
 		exit(EXIT_FAILURE);
 	}
+    std::cout << "char out : " << std::hex << (int)out << std::endl;
 }
 
 int gethexkey(unsigned char data[], std::string key)
@@ -92,14 +94,15 @@ int gethexkey(unsigned char data[], std::string key)
 		gethexdigit(key[i], byte);
 		data[(i-1)/2]=byte;
 	}
+            std::cout << "data : " << std::hex << (int)data << std::endl;
 	return i/2;
 }
 
 int main(int argc, char **argv)
 {
-	std::string key = "6b3494ce3439";
-    std::string fileNameIn = "test.jpg";
-    std::string fileNameOut = "testcrypted.jpg";
+	std::string key = "22";
+    std::string fileNameIn = "carre_rouge.png";
+    std::string fileNameOut = "carre_rouge_crypted.png";
 	bool hex = false;
 	int len=0;
 	unsigned char keydata[256];
@@ -107,6 +110,8 @@ int main(int argc, char **argv)
 	len=gethexkey(keydata, key);
 
 	State bytestream (keydata, len);
+    
+    std::cout << "keyData : " << std::hex << keydata << std::endl;
 
 	std::fstream infile;
 	infile.open(fileNameIn.c_str(), std::ios::in | std::ios::binary);
@@ -133,14 +138,16 @@ int main(int argc, char **argv)
 		unsigned char streambyte;
 
 		infile.get(inbyte);
-
+         
 		while(!infile.eof())
 		{
 			streambyte=bytestream.getbyte();
 			outbyte=inbyte ^ streambyte;
+            std::cout << std::hex << (int)streambyte << " ";
 			outfile.put(outbyte);
 			infile.get(inbyte);
 		}
+        std::cout << std::endl;
 	}
 	else
 	{
