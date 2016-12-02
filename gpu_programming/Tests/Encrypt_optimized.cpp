@@ -154,7 +154,7 @@ int main()
   auto k = compile(xorFunction2);
 
   // Set the number of QPUs to use
-  k.setNumQPUs(8);
+  k.setNumQPUs(1);
   int size = LEN(filelen);
   printf("original: %d size: %d\n",filelen,size);
   // Allocate and initialise arrays shared between ARM and GPU

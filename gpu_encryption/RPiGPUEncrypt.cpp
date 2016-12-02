@@ -159,7 +159,7 @@ char* encrypt_file(char* file_path, char* destination_path) {
   fp = fopen(destination_path, "wb");
   fwrite(outputBuffer, sizeof(outputBuffer[0]), data.length/sizeof(outputBuffer[0]), fp);
   fclose(fp);
-  printf("\n\nGPU V1: Time taken: %ld.%06lds\n", diff.tv_sec, diff.tv_usec);
+  printf("\n\nGPU V1: Time taken: %ld.%06ld s\n", diff.tv_sec, diff.tv_usec);
 
   printf("\n====== ENCRYPTION V1 ENDED ====== \n");
 
@@ -178,7 +178,11 @@ char* encrypt_file(char* file_path, char* destination_path) {
   k(&message2, &key2, &encrypted2, size);
   gettimeofday(&stop, NULL);
   timersub(&stop, &start, &diff);
-  printf("\n\nGPU V2: Time taken: %ld.%06lds\n", diff.tv_sec, diff.tv_usec);
+  printf("\n\nGPU V2: Time taken: %ld.%06ld s\n", diff.tv_sec, diff.tv_usec);
 
   printf("\n\n");
+
+  free(generated_key);
+  free(integer_key);
+  free(integer_msg);
 }

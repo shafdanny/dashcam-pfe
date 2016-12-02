@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+// basic file operations
+#include <iostream>
+#include <fstream>
+using namespace std;
 
 /* This code is based on the
  *  Reference implementation of the TRIVIUM stream cipher
@@ -200,9 +204,15 @@ int main() {
 
   ECRYPT_process_bytes(0, &trivium_state, input, output, 2048);
 
-  for (i=0; i<16; i++)
-    printf("%x ", output[i]);
+  ofstream myfile;
 
+  myfile.open ("trivium.key");
+  
+  for (i=0; i<2048; i++)
+    myfile << output[i];
+//printf("%x ", output[i]);
+
+  myfile.close();
 
   printf("\n\n");
   return 0;

@@ -133,7 +133,7 @@ int main()
 
   Data data;
 
-  fp = fopen("bigger.jpg","rb");  // r for read, b for binary
+  fp = fopen("images/ornito.jpg","rb");  // r for read, b for binary
   printf("coucou\n");
   fseek(fp, 0, SEEK_END);
   filelen = ftell(fp);

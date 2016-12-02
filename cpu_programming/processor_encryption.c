@@ -62,7 +62,7 @@ unsigned char* generate_random_key(int length)
 int main()
 {
 	srand ((unsigned int) time (NULL));
-	Data file = read("../gpu_programming/Tests/bigger.jpg");
+	Data file = read("../assets/images/bigger.jpg");
 	int len = file.length;
 	int i;
 	struct timeval stop, start;

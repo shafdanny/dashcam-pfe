@@ -290,7 +290,7 @@ int main()
 	
 	unsigned char* res2 = convert_to_char(tmp,len);
 	
-	printf("\n");
+	printf("\n");	
     std::ofstream keyFile("key/test_image_trivium_char.key", std::ios::out | std::ios::binary);
     keyFile.write(reinterpret_cast<const char*>(res), len);
 	std::ofstream  keyFile2 ("key/test_image_trivium_integer.key", std::ios::out | std::ios::binary);

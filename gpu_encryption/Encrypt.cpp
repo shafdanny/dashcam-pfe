@@ -85,7 +85,7 @@ int main()
 
   Data data;
 
-  fp = fopen("./images/bigger.jpg","rb");  // r for read, b for binary
+  fp = fopen("./images/carre_rouge.png","rb");  // r for read, b for binary
   fseek(fp, 0, SEEK_END);
   filelen = ftell(fp);
   rewind(fp);

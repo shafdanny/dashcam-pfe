@@ -85,6 +85,15 @@ Encrypt2: Encrypt_optimized.o $(LIB)
 	@echo Linking...
 	@$(CXX) $^ -o $@ $(CXX_FLAGS)
 
+Trivium: Trivium_encryption.o $(LIB)
+	@echo Linking...
+	@$(CXX) $^ -o $@ $(CXX_FLAGS)
+	
+Trivium_pad: Trivium_pad_encryption.o $(LIB)
+	@echo Linking...
+	@$(CXX) $^ -o $@ $(CXX_FLAGS)
+	
+
 # Intermediate targets
 
 $(OBJ_DIR)/%.o: $(ROOT)/%.cpp $(OBJ_DIR)
