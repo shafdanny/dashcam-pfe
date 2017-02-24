@@ -27,7 +27,7 @@ int main(){
     unsigned char* result = trivium.cypher(buffer,filelen);
     
     cout << "end encryption" << endl;
-    fp = fopen("image_crypted_test1.jpg", "wb");
+    fp = fopen("image_from_rasp.jpg", "wb");
     fwrite(result, sizeof(result[0]), filelen/sizeof(result[0]), fp);
     fclose(fp);
     

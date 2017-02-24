@@ -39,8 +39,11 @@ Data read(char* path)
 /**
  * Function that executes in parallel using QPUs
  * Version 2: Multiple GPU with gather, receive and store
+  extract_t = 0001001001
+  extract_b = fff0ff0ff0
  */
-void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remaining)
+ extract_t
+void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remaining, Int extract_t, Int extract_b)
 {
   Int inc = numQPUs() << 4;
   Int inc_buffer = me() * 160;
@@ -51,7 +54,7 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remainin
   End
   Int z;
     Int t1,t2,t3;
-    Int bit1,bit2,bit3;
+    Int bit,tmp;
   Int result = 0;
   Int tmp,i,k;
   Int pOld;
@@ -68,26 +71,35 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remainin
 			//generate one integer
 			For(i=0,i<32,i++)
 				//66:2 ou 93:29
-				t1 = ((*(b+32) >> 1) ^ (*(b+32) >> 28)) & 1;
+				t1 = ((*(b) >> 1) ^ rotate((*(b) >> 28),14)) & 1;
 				//162:68:4 177:83
-				t2 = ((*(b+80)>> 3) ^ (*(b+80) >> 18)) & 1;
+				t2 = (rotate((*(b)>> 3),11) ^ rotate((*(b) >> 18),11)) & 1;
 				//243:65:1 288:110:14
-				t3 = ((*(b+128)) ^ (*(b+144) >> 13)) & 1;
+				t3 = ((rotate(*(b),8)) ^ (rotate(*(b) >> 13),7)) & 1;
 				z = z << 1;
 				z = z | (t1 ^ t2 ^ t3);
 				
 				//91 et 92 ou 171
-				t1 = t1 ^ (((*(b+32) >> 26) & (*(b+32) >> 27)) ^ (*(b+80) >> 12));
+				t1 = t1 ^ ((rotate(*(b) >> 26,14)) & rotate(*(b) >> 27,14)) ^ rotate(*(b) >> 12,11);
 				//175 et 176 ou 264
-				t2 = t2 ^ (((*(b+80) >> 16) & (*(b+80) >> 17)) ^ (*(b+128) >> 21));
+				t2 = t2 ^ ((rotate(*(b) >> 16,11)) & rotate(*(b) >> 17,11)) ^ rotate(*(b) >> 21,8);
 				//286 et 287 ou 69
-				t3 = t3 ^ (((*(b+144) >> 11) & (*(b+144) >> 12)) ^ (*(b+32) >> 4));
+				t3 = t3 ^ ((rotate(*(b) >> 11,7)) & rotate(*(b) >> 12,7)) ^ rotate(*(b) >> 4,14);
 				
 				
 				//rotate the registers
-				//tableau1
+                //contruct the vector for the insertion
+                bit = rotate(((*b) >> 31) & 1,1);
+                //000t300t200t1
+                tmp = (((extract_t | t1) | rotate(t2,3)) | rotate(t3,6));
+                //delete the bit at position 0 3 and 6 
+                bit = bit & extract_b;
+                bit = bit | tmp;
+                *b = (*b << 1) | bit; 
+                
+                /*
 				bit1 = ((*b) >> 31) & 1;
-				bit2 = (*(b+16) >> 31) & 1;
+				// bit2 = (*(b+16) >> 31) & 1;
 				(*b) = (t1 & 1) | ((*b) << 1);
 				*(b+16) = (bit1 & 1) | (*(b+16) << 1);
 				*(b+32) = (bit2 & 1) | (*(b+32) << 1);
@@ -107,6 +119,7 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remainin
 				*(b+112) = (bit1 & 1) | (*(b+112) << 1);
 				*(b+128) = (bit2 & 1) | (*(b+128) << 1);
 				*(b+144) = (bit3 & 1) | (*(b+144) << 1);
+                */
 			End
 			result = result | z;
 		End
@@ -377,7 +390,7 @@ int main()
     int filelen = ftell(fp);
     rewind(fp);
     
-    int nb_core = 12;
+    int nb_core = 2;
     int len = filelen;
 	int nb_integer = LEN(len);
 	int nb_vector = LENVECTOR(nb_integer);
@@ -433,6 +446,20 @@ int main()
 	char* test = "salut ca va connard";
     //we go a bit further and add 0 at the end of the message, easier for the encryption/decryption
 	int* integer_msg = convert_to_integer(data.buffer,nb_vector*64);
+    
+    int extract_t[16];
+    int exract_b[16];
+    
+    for(i=0;i<16:i++){
+        if(i==2 || i==4 || i==6){
+            extract_t[i]=1;
+            extract_b[i]=0;
+        }
+        else{
+            extract_t[i]=0;
+            extract_b[i]=0xFFFFFFFF;
+        }
+    }
     
 	//int* integer_msg = convert_to_integer(test,20);
     /*
@@ -512,9 +539,7 @@ int main()
     //message, key*nbcore,  retour, nb_integer per core, modulo ce qui reste
     printf("test gpu %d, %d\n",nb_integer/nb_core,nb_integer%nb_core);
     
-    k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core);
-    k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core);
-
+    k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core,extract_t,extract_b);
     //k(&message, &key, &encrypted,200,0);
     
     printf("gpu regist1 %d regist2 %d\n",key[0],key[160]);

@@ -40,26 +40,20 @@ Data read(char* path)
  * Function that executes in parallel using QPUs
  * Version 2: Multiple GPU with gather, receive and store
  */
-void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remaining)
+void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector)
 {
   Int inc = numQPUs() << 4;
-  Int inc_buffer = me() * 160;
-  Int nb_vector_per_cor = nb_vector;
-  //si le nombre de vecteurs n est pas multiple de numberQPU certains coeurs doivent aller plus loin
-  Where (remaining > me())
-      nb_vector_per_cor++;
-  End
-  Int z;
-    Int t1,t2,t3;
-    Int bit1,bit2,bit3;
   Int result = 0;
   Int tmp,i,k;
   Int pOld;
+	Int z = 0;
+	Int t1,t2,t3;
+	Int bit1,bit2,bit3;
   Ptr<Int> a = p + index() + (me() << 4);
-  Ptr<Int> b = q + inc_buffer;
+  Ptr<Int> b = q + index() + (me() << 4);
   Ptr<Int> c = r + index() + (me() << 4);
   gather(a);
-	For(Int nb=0,nb<nb_vector_per_cor,nb++)
+	For(Int nb=0,nb<nb_vector,nb++)
         result = 0;
 		gather(a+inc);
         a = a + inc;
@@ -91,6 +85,7 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remainin
 				(*b) = (t1 & 1) | ((*b) << 1);
 				*(b+16) = (bit1 & 1) | (*(b+16) << 1);
 				*(b+32) = (bit2 & 1) | (*(b+32) << 1);
+				
 				
 				//tableau 2
 				bit1 = (*(b+48) >> 31) & 1;
@@ -155,12 +150,10 @@ int* convert_to_integer(unsigned char* buff,int n)
 		//printf("iteration value: %08X\n",tab[i]);
 	}
 	remaining = n%4;
-	if(remaining != 0){
-        tab[quarter] = 0;
-        for(i=0;i<remaining;i++){
-            tab[quarter]|= (int)(buff[cmp+i] << (3-i)*8);
-        }
-    }
+	tab[quarter] = 0;
+	for(i=0;i<remaining;i++){
+		tab[quarter]|= (int)(buff[cmp+i] << (3-i)*8);
+	}
 	return tab;
 }
 
@@ -311,34 +304,7 @@ unsigned int* trivium_cpu(int* message,int** r1,int** r2,int** r3,int n)
     unsigned int* vector = (unsigned int*)malloc(16*sizeof(int));
 	for(i=0;i<number_of_vector;i++){
         for(k=0;k<16;k++){
-            int key = get_integer(r1,r2,r3);
-            vector[15-k] = key;
-        }
-        for(k=0;k<16;k++){
-            //printf("result inside cpu %x %x\n",vector[k],message[i*16+k]);
-            res[i*16+k] = message[i*16+k] ^ vector[k];
-        }
-		//res[i] = message[i] ^ key;
-        //res[i] = key;
-	}
-	return res;
-}
-
-unsigned int* multi_core_trivium_cpu(int* message,int nb_core,int** r1,int** r2,int** r3,int n)
-{
-	int i,k,c;
-    int number_of_vector = LENVECTOR(n);
-    printf("len de merde %d %d %d\n",n,number_of_vector*16,nb_core);
-	unsigned int* res =(unsigned int*)calloc(number_of_vector*16,sizeof(int));
-    unsigned int* vector = (unsigned int*)malloc(16*sizeof(int));
-   
-	for(i=0;i<number_of_vector;i++){
-        c = i % (nb_core);
-        for(k=0;k<16;k++){
-            int* sub_r1 = (*r1+c*3);
-            int* sub_r2 = (*r2+c*3);
-            int* sub_r3 = (*r3+c*4);
-            int key =  get_integer(&(sub_r1),&(sub_r2),&(sub_r3));
+            int key =  get_integer(r1,r2,r3);
             vector[15-k] = key;
         }
         for(k=0;k<16;k++){
@@ -377,7 +343,6 @@ int main()
     int filelen = ftell(fp);
     rewind(fp);
     
-    int nb_core = 12;
     int len = filelen;
 	int nb_integer = LEN(len);
 	int nb_vector = LENVECTOR(nb_integer);
@@ -395,9 +360,9 @@ int main()
   int i;
   int* t_key = (int*)calloc(3,sizeof(int));
   int* init = (int*)calloc(3,sizeof(int));
-  int* regist1 = (int*)calloc(3*nb_core,sizeof(int));
-  int* regist2 = (int*)calloc(3*nb_core,sizeof(int));
-  int* regist3 = (int*)calloc(4*nb_core,sizeof(int));
+  int* regist1 = (int*)calloc(3,sizeof(int));
+  int* regist2 = (int*)calloc(3,sizeof(int));
+  int* regist3 = (int*)calloc(4,sizeof(int));
 	
 	t_key[0] = 3861042005;//random_integer();
 	t_key[1] = 1559349736;//random_integer();
@@ -406,30 +371,12 @@ int main()
 	init[0] = 873716055;//random_integer();
 	init[1] = 1559349736;//random_integer();
 	init[2] = 3547487477;//random_integer();
-    
+	
 	printf("start generating random key size\n");
 	initiation(&regist1,&regist2,&regist3,t_key,init);
-    
-    //spread the register to all the register we will need
-    for(i=1;i<nb_core;i++){
-        regist1[i*3] = regist1[0];
-        regist1[i*3+1] = regist1[1];
-        regist1[i*3+2] = regist1[2];
-        
-        regist2[i*3] = regist2[0];
-        regist2[i*3+1] = regist2[1];
-        regist2[i*3+2] = regist2[2];
-        
-        regist3[i*4] = regist3[0];
-        regist3[i*4+1] = regist3[1];
-        regist3[i*4+2] = regist3[2];
-        regist3[i*4+3] = regist3[3];
-    }
-	
-    printf("regist1 %d regist2 %d\n",regist1[0],regist1[3]);
-    printf("regist1 %d regist2 %d\n",regist2[0],regist2[3]);
-    printf("regist1 %d regist2 %d\n",regist3[0],regist3[4]);
-    
+	auto k = compile(xorFunction);
+	k.setNumQPUs(1);
+	SharedArray<int> message(nb_integer), key(160), encrypted(nb_integer);
 	char* test = "salut ca va connard";
     //we go a bit further and add 0 at the end of the message, easier for the encryption/decryption
 	int* integer_msg = convert_to_integer(data.buffer,nb_vector*64);
@@ -444,44 +391,34 @@ int main()
     integer2_msg[4] = 888888888;
     */
     
-    auto k = compile(xorFunction);
-	k.setNumQPUs(nb_core);
-	SharedArray<int> message(nb_integer), key(160*nb_core), encrypted(nb_integer);
-    
-    for(i=0;i<nb_core;i++){
-        key[0+i*160] = regist1[0];
-        key[16+i*160] = regist1[1];
-        key[32+i*160] = regist1[2];
-        key[48+i*160] = regist2[0];
-        key[64+i*160] = regist2[1];
-        key[80+i*160] = regist2[2];
-        key[96+i*160] = regist3[0];
-        key[112+i*160] = regist3[1];
-        key[128+i*160] = regist3[2];
-        key[144+i*160] = regist3[3];
-    }
+	key[0] = regist1[0];
+	key[16] = regist1[1];
+	key[32] = regist1[2];
+	key[48] = regist2[0];
+	key[64] = regist2[1];
+	key[80] = regist2[2];
+	key[96] = regist3[0];
+	key[112] = regist3[1];
+	key[128] = regist3[2];
+	key[144] = regist3[3];
 	
     
 	printf("before\n");
-    /*
 	for(i=0;i<20;i++){
 		//printf("regist3 %x\n",regist3[i]);
         printf("message to be encrypted %x\n",integer_msg[LEN(len)-19+i]);
 	}
+    /*
+    for(i=0;i<4;i++){
+		//printf("regist3 %x\n",regist3[i]);
+        printf("message to be encrypted end %x\n",integer_msg[16+i]);
+	}
     */
-    for(int k=0;k<nb_core;k++){
-        for(i=0;i<4;i++){
-            //printf("regist3 %x\n",regist3[i]);
-            printf("message to be encrypted end %x\n",integer_msg[k*16+i]);
-        }
-    }
+    unsigned int* cpu_encrypted = trivium_cpu(integer_msg,&regist1,&regist2,&regist3,nb_integer);
+	for(i=0;i<4;i++){
+		printf("result cpu %x\n",cpu_encrypted[LENVECTOR(len)-19+i]);
+	}
     
-    unsigned int* cpu_encrypted = multi_core_trivium_cpu(integer_msg,nb_core,&regist1,&regist2,&regist3,nb_integer);
-    for(int k=0;k<nb_core;k++){
-        for(i=0;i<4;i++){
-            printf("result cpu %x\n",cpu_encrypted[k*16+i]);
-        }
-    }
 	
     /*
 	printf("etat des registres\n");
@@ -490,6 +427,7 @@ int main()
 	}
     */
     
+    
     for(i=0;i<nb_integer;i++){
 		message[i] = cpu_encrypted[i];
 	}
@@ -497,37 +435,27 @@ int main()
         printf("message to be decrypted %x\n",message[i]);
     }
     printf("\n");
-    /*
     for(i=0;i<20;i++){
         printf("message to be decrypted %x\n",message[i+8719]);
 	}
-    */
-    //key[0] = 1222222222;
-    printf("gpu regist1 %d regist2 %d\n",key[0],key[160]);
-    printf("gpu regist1 %d regist2 %d\n",key[48],key[160+48]);
-    printf("gpu regist1 %d regist2 %d\n",key[96],key[160+96]);
-    
     printf("number d encule %d %d\n",nb_vector,LEN(len));
-
-    //message, key*nbcore,  retour, nb_integer per core, modulo ce qui reste
-    printf("test gpu %d, %d\n",nb_integer/nb_core,nb_integer%nb_core);
+    k(&message, &key, &encrypted,nb_vector);
+	printf("\ngpu\n");
+	for(i=0;i<4;i++){
+        //printf("send gpu %x\n",message[i]);
+		//printf("result gpu %x %x",encrypted[i],message[i] ^ encrypted[15-i]);
+        printf("result gpu %x\n",encrypted[i]);
+	}
     
-    k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core);
-    k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core);
-
-    //k(&message, &key, &encrypted,200,0);
     
-    printf("gpu regist1 %d regist2 %d\n",key[0],key[160]);
-    printf("gpu regist1 %d regist2 %d\n",key[48],key[160+48]);
-    printf("gpu regist1 %d regist2 %d\n",key[96],key[160+96]);
-    
-	printf("\ngpu\n"); 
-    
-    for(int k=0;k<nb_core;k++){
-        for(i=0;i<4;i++){
-            printf("result encrypted %x\n",encrypted[k*16+i]);
-        }
+    for(i=0;i<4;i++){
+        printf("result encrypted %x\n",encrypted[i]);
     }
+    for(i=0;i<20;i++){
+        //printf("send gpu %x\n",message[i]);
+		//printf("result gpu %x %x",encrypted[i],message[i] ^ encrypted[15-i]);
+        printf("result gpu %x\n",encrypted[i+8719]);
+	}
     
 	printf("etat des registres\n");
 	for(i=0;i<4;i++){
@@ -541,12 +469,10 @@ int main()
     
     unsigned char *decryptedBuffer = convert_to_char(tmp,len);
 
-    
-    fp = fopen("image_multi_core_test.jpg", "wb");
+    fp = fopen("image_test.jpg", "wb");
     //fp = fopen("image_decrypted_test.jpg", "wb"); 
     fwrite(decryptedBuffer, sizeof(decryptedBuffer[0]), data.length/sizeof(decryptedBuffer[0]), fp);
     fclose(fp);
-    
     
 	
  
