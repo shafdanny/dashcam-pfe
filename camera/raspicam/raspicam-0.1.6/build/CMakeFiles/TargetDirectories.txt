@@ -1,0 +1,4 @@
+/home/pi/camera/raspicam/raspicam-0.1.6/build/src/CMakeFiles/raspicam.dir
+/home/pi/camera/raspicam/raspicam-0.1.6/build/utils/CMakeFiles/raspicam_still_test.dir
+/home/pi/camera/raspicam/raspicam-0.1.6/build/utils/CMakeFiles/raspicam_test.dir
+/home/pi/camera/raspicam/raspicam-0.1.6/build/CMakeFiles/uninstall.dir

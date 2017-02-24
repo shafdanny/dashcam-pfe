@@ -1,5 +1,14 @@
 #include<thread>
 using namespace std;
 
-class Parallel: public thread
+class GPUEncryption
+{
+    
+    public:
+        GPUEncryption(Queue* _queue);
+        
+    private:
+        Queue* queue;
+        thread t;
+}
 
