@@ -3,7 +3,6 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define LEN(n) ((n%4 == 0)? n/4 : n/4+1)
 
 int count = 0;
 
@@ -78,10 +77,12 @@ int* convert_to_integer(unsigned char* buff,int n)
 		//printf("iteration value: %08X\n",tab[i]);
 	}
 	remaining = n%4;
-	tab[quarter] = 0;
-	for(i=0;i<remaining;i++){
-		tab[quarter]|= (int)(buff[cmp+i] << (3-i)*8);
-	}
+    if(remaining != 0){
+        tab[quarter] = 0;
+        for(i=0;i<remaining;i++){
+            tab[quarter]|= (int)(buff[cmp+i] << (3-i)*8);
+        }
+    }
 	return tab;
 }
 
