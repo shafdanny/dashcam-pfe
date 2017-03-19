@@ -43,5 +43,10 @@ usage: go in Tests folder, with a command line type make QPU=1 Trivium or make Q
 * usage:
   * compile the C++ code with a command line g++ -o crypt crypt.cpp trivium_multi_core.cpp trivium.cpp 
   * run the client with qt specify the raspberry ip then python camerasocket.py | ./encryption | python mysocket.py
+  
+##client
+* Installer la dernière version de Qt,  la version utilisée pour ce projet est la 5.7
+* Ouvrir le fichier .pro avec Qt Creator
+* Compiler et exécuter
 
 
