@@ -217,7 +217,7 @@ void initiation(int** r1,int** r2,int** r3,int* key,int* init)
 		// 243 ou 286 et 287 ou 288 ou 69
 		t3 = ((*r3)[2]) ^ ( ((*r3)[3] >> 15) & ((*r3)[3] >> 16) ) ^ ((*r3)[3] >> 17) ^ ((*r1)[2] >> 4);
 		
-		//on decale chacun des tableaux en recuperant le dernier bit du tableau précédant de chacun des tableaux [93,84,111]
+		//on decale chacun des tableaux en recuperant le dernier bit du tableau prï¿½cï¿½dant de chacun des tableaux [93,84,111]
 		//tableau 1
 		bit1 = ((*r1)[0] >> 31) & 1;
 		bit2 = ((*r1)[1] >> 31) & 1;
@@ -372,7 +372,7 @@ int main()
 {
     FILE *fp;
     Data data;
-    fp = fopen("images/goku.jpg","rb");  // r for read, b for binary
+    fp = fopen("benchmark-images/20M.jpg","rb");  // r for read, b for binary
     fseek(fp, 0, SEEK_END);
     int filelen = ftell(fp);
     rewind(fp);
@@ -476,12 +476,20 @@ int main()
         }
     }
     
+	struct timeval stop, start,diff;
+	gettimeofday(&start, NULL);
+
+
     unsigned int* cpu_encrypted = multi_core_trivium_cpu(integer_msg,nb_core,&regist1,&regist2,&regist3,nb_integer);
-    for(int k=0;k<nb_core;k++){
+    gettimeofday(&stop, NULL);
+  	timersub(&stop, &start, &diff);
+  	printf("Trivium CPU, XOR CPU: %ld.%06lds\n", diff.tv_sec, diff.tv_usec);
+
+	/*for(int k=0;k<nb_core;k++){
         for(i=0;i<4;i++){
             printf("result cpu %x\n",cpu_encrypted[k*16+i]);
         }
-    }
+    }*/
 	
     /*
 	printf("etat des registres\n");
@@ -512,8 +520,15 @@ int main()
     //message, key*nbcore,  retour, nb_integer per core, modulo ce qui reste
     printf("test gpu %d, %d\n",nb_integer/nb_core,nb_integer%nb_core);
     
+	gettimeofday(&start, NULL);
+
     k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core);
-    k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core);
+
+	gettimeofday(&stop, NULL);
+  	timersub(&stop, &start, &diff);
+  	printf("Trivium GPU, XOR GPU: %ld.%06lds\n", diff.tv_sec, diff.tv_usec);
+
+    // k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core);
 
     //k(&message, &key, &encrypted,200,0);
     

@@ -88,6 +88,10 @@ Encrypt2: Encrypt_optimized.o $(LIB)
 Trivium: Trivium_encryption.o $(LIB)
 	@echo Linking...
 	@$(CXX) $^ -o $@ $(CXX_FLAGS)
+    
+Trivium2: Triviumv2.o $(LIB)
+	@echo Linking...
+	@$(CXX) $^ -o $@ $(CXX_FLAGS)
 	
 Trivium_pad: Trivium_pad_encryption.o $(LIB)
 	@echo Linking...

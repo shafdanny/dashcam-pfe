@@ -1,5 +1,6 @@
-#include<thread>
+#include <thread>
 #include "BlockingQueue.h"
+#include "utils.h"
 #include <iostream>
 
 using namespace std;
@@ -9,10 +10,10 @@ class GPUEncryption
     
     public:
         GPUEncryption(BlockingQueue<Data>* _queue);
-        void start();
-        void run();
+        virtual void start();
+        virtual void run();
         
-    private:
+    protected:
         BlockingQueue<Data>* queue;
         thread t;
 };

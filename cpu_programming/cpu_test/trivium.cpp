@@ -27,10 +27,12 @@ int* convert_to_integer(unsigned char* buff,int n)
 		tab[i] |= (int)(buff[cmp+3]);
 	}
 	remaining = n%4;
-	tab[quarter] = 0;
-	for(i=0;i<remaining;i++){
-		tab[quarter]|= (int)(buff[cmp+i] << (3-i)*8);
-	}
+    if(remaining != 0){
+        tab[quarter] = 0;
+        for(i=0;i<remaining;i++){
+            tab[quarter]|= (int)(buff[cmp+i] << (3-i)*8);
+        }
+    }
 	return tab;
 }
 

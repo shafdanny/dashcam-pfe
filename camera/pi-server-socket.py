@@ -24,6 +24,7 @@ while True:
             for line in sys.stdin:
                 try:
                     connection.send(line)
+                    print >>sys.stderr, 'Success send data'
                 except socket.error, e:
                     print >> sys.stderr, 'Socket error! Maybe a client closed a connection?'
                     error = True

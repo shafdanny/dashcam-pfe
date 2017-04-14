@@ -3,27 +3,6 @@
 #include <mutex>
 #include <condition_variable>
 
-
-
-typedef struct{
-    unsigned char* msg;
-    unsigned char* key;
-    int len;
-	int id;
-} Data;
-
-
-/*
-class Data{
-    
-    public:
-        char* msg;
-        char* key;
-        int len;
-        
-};
-*/
-
 using namespace std;
  
 template <typename T>

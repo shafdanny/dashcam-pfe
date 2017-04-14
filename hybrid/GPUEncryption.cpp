@@ -1,5 +1,4 @@
 #include "GPUEncryption.h"
-#include "utils.h"
 #include "QPULib.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,9 +10,12 @@ void GPUEncryption::run(){
     Data data;
     auto k = compile(xorFunction2);
     // Set the number of QPUs to use
-    k.setNumQPUs(8);
+    k.setNumQPUs(12);
     while(true){
+	    //cout << "Waiting something from queue" << endl;
         data = queue->pop();
+        //cout << "Received something from queue" << endl;
+
         //cout << data.msg << "key " << data.key << "cmp " << data.len << endl;
         int size = LEN(data.len);
         // Allocate and initialise arrays shared between ARM and GPU
@@ -36,11 +38,12 @@ void GPUEncryption::run(){
         }
         unsigned char *decryptedBuffer = convert_to_char(tmp,data.len);
         fwrite(decryptedBuffer, sizeof(decryptedBuffer[0]), data.len, stdout);
+        //fwrite(data.msg, sizeof(char), data.len, stdout);
         fflush(stdout);
 		
 		free(data.msg);
 		free(data.key);
-		//cout << data.msg << endl;
+        free(decryptedBuffer);
     }
 }
 
@@ -51,6 +54,7 @@ GPUEncryption::GPUEncryption(BlockingQueue<Data>* _queue)
 
 
 void GPUEncryption::start(){
+    //cout << "Start GPUEncryption thread" << endl;
     t = std::thread(&GPUEncryption::run, this);
 }
 

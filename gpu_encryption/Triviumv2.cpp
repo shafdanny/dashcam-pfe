@@ -42,11 +42,10 @@ Data read(char* path)
   extract_t = 0001001001
   extract_b = fff0ff0ff0
  */
- extract_t
-void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remaining, Int extract_t, Int extract_b)
+void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remaining, Ptr<Int> extract_t, Ptr<Int> extract_b, Ptr<Int> extract_p)
 {
   Int inc = numQPUs() << 4;
-  Int inc_buffer = me() * 160;
+  Int inc_buffer = me() * 16;
   Int nb_vector_per_cor = nb_vector;
   //si le nombre de vecteurs n est pas multiple de numberQPU certains coeurs doivent aller plus loin
   Where (remaining > me())
@@ -54,7 +53,7 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remainin
   End
   Int z;
     Int t1,t2,t3;
-    Int bit,tmp;
+    Int bit;
   Int result = 0;
   Int tmp,i,k;
   Int pOld;
@@ -71,13 +70,15 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remainin
 			//generate one integer
 			For(i=0,i<32,i++)
 				//66:2 ou 93:29
-				t1 = ((*(b) >> 1) ^ rotate((*(b) >> 28),14)) & 1;
+                // t1 = ((*(b) >> 1) ^ (*(b) >> 28)) & 1;
+				t1 = (rotate((*(b) >> 1),14) ^ rotate((*(b) >> 28),14)) & 1;
 				//162:68:4 177:83
 				t2 = (rotate((*(b)>> 3),11) ^ rotate((*(b) >> 18),11)) & 1;
 				//243:65:1 288:110:14
-				t3 = ((rotate(*(b),8)) ^ (rotate(*(b) >> 13),7)) & 1;
+				t3 = ((rotate(*(b),8)) ^ (rotate(*(b) >> 13,7))) & 1;
 				z = z << 1;
-				z = z | (t1 ^ t2 ^ t3);
+				z = z | ((t1 ^ t2 ^ t3) & (*extract_p));
+                // z = z | t1;
 				
 				//91 et 92 ou 171
 				t1 = t1 ^ ((rotate(*(b) >> 26,14)) & rotate(*(b) >> 27,14)) ^ rotate(*(b) >> 12,11);
@@ -89,14 +90,15 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remainin
 				
 				//rotate the registers
                 //contruct the vector for the insertion
-                bit = rotate(((*b) >> 31) & 1,1);
+                bit = rotate((*(b) >> 31) & 1,1);
                 //000t300t200t1
-                tmp = (((extract_t | t1) | rotate(t2,3)) | rotate(t3,6));
+                tmp = (*extract_p & t1) | (*(extract_p+16) & rotate(t2,3)) | (*(extract_p+32) & rotate(t3,6));
                 //delete the bit at position 0 3 and 6 
-                bit = bit & extract_b;
+                bit = bit & *extract_b;
+                //add the new bit too the beguinning of each register
                 bit = bit | tmp;
-                *b = (*b << 1) | bit; 
-                
+                // *b = (*b << 1) | bit; 
+                *b = bit | (*b << 1);
                 /*
 				bit1 = ((*b) >> 31) & 1;
 				// bit2 = (*(b+16) >> 31) & 1;
@@ -125,7 +127,7 @@ void xorFunction(Ptr<Int> p, Ptr<Int> q, Ptr<Int> r, Int nb_vector, Int remainin
 		End
 		receive(pOld);
 		//printf("message %d\n",pOld);
-		store(result ^ pOld, c);
+		store(result, c);
         //store(result,c);
 		c = c + inc;
 	End
@@ -356,7 +358,7 @@ unsigned int* multi_core_trivium_cpu(int* message,int nb_core,int** r1,int** r2,
         }
         for(k=0;k<16;k++){
             //printf("result inside cpu %x %x\n",vector[k],message[i*16+k]);
-            res[i*16+k] = message[i*16+k] ^ vector[k];
+            res[i*16+k] = vector[k];
         }
 		//res[i] = message[i] ^ key;
         //res[i] = key;
@@ -385,7 +387,7 @@ int main()
 {
     FILE *fp;
     Data data;
-    fp = fopen("images/goku.jpg","rb");  // r for read, b for binary
+    fp = fopen("images/blossom.jpg","rb");  // r for read, b for binary
     fseek(fp, 0, SEEK_END);
     int filelen = ftell(fp);
     rewind(fp);
@@ -447,19 +449,6 @@ int main()
     //we go a bit further and add 0 at the end of the message, easier for the encryption/decryption
 	int* integer_msg = convert_to_integer(data.buffer,nb_vector*64);
     
-    int extract_t[16];
-    int exract_b[16];
-    
-    for(i=0;i<16:i++){
-        if(i==2 || i==4 || i==6){
-            extract_t[i]=1;
-            extract_b[i]=0;
-        }
-        else{
-            extract_t[i]=0;
-            extract_b[i]=0xFFFFFFFF;
-        }
-    }
     
 	//int* integer_msg = convert_to_integer(test,20);
     /*
@@ -473,29 +462,41 @@ int main()
     
     auto k = compile(xorFunction);
 	k.setNumQPUs(nb_core);
-	SharedArray<int> message(nb_integer), key(160*nb_core), encrypted(nb_integer);
+	SharedArray<int> message(nb_integer), key(16*nb_core), encrypted(nb_integer),extract_t(16),extract_b(16),extract_p(48);
     
     for(i=0;i<nb_core;i++){
-        key[0+i*160] = regist1[0];
-        key[16+i*160] = regist1[1];
-        key[32+i*160] = regist1[2];
-        key[48+i*160] = regist2[0];
-        key[64+i*160] = regist2[1];
-        key[80+i*160] = regist2[2];
-        key[96+i*160] = regist3[0];
-        key[112+i*160] = regist3[1];
-        key[128+i*160] = regist3[2];
-        key[144+i*160] = regist3[3];
+        key[16*i] = regist1[0];
+        key[1+i*16] = regist1[1];
+        key[2+i*16] = regist1[2];
+        key[3+i*16] = regist2[0];
+        key[4+i*16] = regist2[1];
+        key[5+i*16] = regist2[2];
+        key[6+i*16] = regist3[0];
+        key[7+i*16] = regist3[1];
+        key[8+i*16] = regist3[2];
+        key[9+i*16] = regist3[3];
     }
 	
     
+    for(i=0;i<16;i++){
+        extract_p[i] = 0;
+        extract_p[16+i] = 0;
+        extract_p[32+i] = 0;
+        if(i==0 || i==3 || i==6){
+            extract_t[i]=1;
+            extract_b[i]=0;
+        }
+        else{
+            extract_t[i]=0;
+            extract_b[i]=0xFFFFFFFF;
+        }
+    }
+    extract_p[0] = 1;
+    extract_p[19] = 1;
+    extract_p[22] = 1;
+    
 	printf("before\n");
-    /*
-	for(i=0;i<20;i++){
-		//printf("regist3 %x\n",regist3[i]);
-        printf("message to be encrypted %x\n",integer_msg[LEN(len)-19+i]);
-	}
-    */
+
     for(int k=0;k<nb_core;k++){
         for(i=0;i<4;i++){
             //printf("regist3 %x\n",regist3[i]);
@@ -510,12 +511,6 @@ int main()
         }
     }
 	
-    /*
-	printf("etat des registres\n");
-	for(i=0;i<4;i++){
-		printf("regist3 %x\n",regist3[i]);
-	}
-    */
     
     for(i=0;i<nb_integer;i++){
 		message[i] = cpu_encrypted[i];
@@ -529,22 +524,22 @@ int main()
         printf("message to be decrypted %x\n",message[i+8719]);
 	}
     */
-    //key[0] = 1222222222;
-    printf("gpu regist1 %d regist2 %d\n",key[0],key[160]);
-    printf("gpu regist1 %d regist2 %d\n",key[48],key[160+48]);
-    printf("gpu regist1 %d regist2 %d\n",key[96],key[160+96]);
+    printf("gpu regist1 %d regist2 %d\n",key[0],key[16]);
+    printf("gpu regist1 %d regist2 %d\n",key[2],key[18]);
+    printf("gpu regist1 %d regist2 %d\n",key[6],key[22]);
     
     printf("number d encule %d %d\n",nb_vector,LEN(len));
 
     //message, key*nbcore,  retour, nb_integer per core, modulo ce qui reste
     printf("test gpu %d, %d\n",nb_integer/nb_core,nb_integer%nb_core);
     
-    k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core,extract_t,extract_b);
+    k(&message, &key, &encrypted ,1,0,&extract_t,&extract_b,&extract_p);
+    // k(&message, &key, &encrypted,nb_vector/nb_core,nb_vector%nb_core,&extract_t,&extract_b,&extract_p);
     //k(&message, &key, &encrypted,200,0);
     
-    printf("gpu regist1 %d regist2 %d\n",key[0],key[160]);
-    printf("gpu regist1 %d regist2 %d\n",key[48],key[160+48]);
-    printf("gpu regist1 %d regist2 %d\n",key[96],key[160+96]);
+    printf("gpu regist1 %d regist2 %d\n",key[0],key[16]);
+    printf("gpu regist1 %d regist2 %d\n",key[2],key[18]);
+    printf("gpu regist1 %d regist2 %d\n",key[6],key[22]);
     
 	printf("\ngpu\n"); 
     
@@ -571,7 +566,7 @@ int main()
     //fp = fopen("image_decrypted_test.jpg", "wb"); 
     fwrite(decryptedBuffer, sizeof(decryptedBuffer[0]), data.length/sizeof(decryptedBuffer[0]), fp);
     fclose(fp);
-    
+        
     
 	
  

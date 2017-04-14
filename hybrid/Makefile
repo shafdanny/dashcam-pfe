@@ -67,6 +67,7 @@ clean:
 	rm -f Encrypt2
 	rm -f Test
 	rm -f TriviumKeygen
+	rm -f TriviumKeygenCPU
 
 LIB = $(patsubst %,$(OBJ_DIR)/%,$(OBJ))
 
@@ -97,10 +98,10 @@ Trivium_pad: Trivium_pad_encryption.o $(LIB)
 TriviumKeygen: TriviumKeygen.o GPUEncryption.o trivium.o utils.o $(LIB)
 	@echo Linking...
 	@$(CXX) $^ -o $@ $(CXX_FLAGS) -pthread
-	
-	
-
-
+    
+TriviumKeygenCPU: TriviumKeygenCPU.o CPUEncryption.o GPUEncryption.o trivium.o utils.o $(LIB)
+	@echo Linking...
+	@$(CXX) $^ -o $@ $(CXX_FLAGS) -pthread
 
 # Intermediate targets
 
