@@ -3,6 +3,13 @@
 
 #include <QObject>
 #include <QFile>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <qDebug>
+
 
 class ImageDecrypter : public QObject
 {

@@ -9,7 +9,7 @@ class Trivium{
         static int* m_key;
         static int* m_init;
         Trivium();
-        unsigned char* generateKey(int len);
+        unsigned char* cypher(unsigned char* buffer, int len);
         void initiation(int* key = m_key, int* init = m_init);
     
     

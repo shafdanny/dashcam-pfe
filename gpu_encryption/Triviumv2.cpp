@@ -445,7 +445,6 @@ int main()
     printf("regist1 %d regist2 %d\n",regist2[0],regist2[3]);
     printf("regist1 %d regist2 %d\n",regist3[0],regist3[4]);
     
-	char* test = "salut ca va connard";
     //we go a bit further and add 0 at the end of the message, easier for the encryption/decryption
 	int* integer_msg = convert_to_integer(data.buffer,nb_vector*64);
     
